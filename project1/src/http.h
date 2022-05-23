@@ -15,6 +15,11 @@
 #define HTTP 0
 #define HTTPS 1
 
+typedef struct {
+  char** argv;
+  char** env;
+} param_t;
+
 int start_http();
 int Start_http();
 
@@ -26,7 +31,7 @@ int Serve_static(httpio_t* hio, request_t* req);
 int serve_cgi(httpio_t* hio, request_t* req);
 int Serve_cgi(httpio_t* hio, request_t* req);
 
-char** get_cgi_env(request_t* req);
+void get_cgi_env(request_t* req, param_t* p);
 
 void insert_env(char** env, int i, char* buf);
 

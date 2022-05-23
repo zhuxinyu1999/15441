@@ -153,18 +153,15 @@ int serve_cgi(httpio_t* hio, request_t* req) {
   }
 
   if (pid == 0) {
+
     Close(pipefd[1]);
     Dup2(pipefd[0], STDIN_FILENO);
     Dup2(hio->fd, STDOUT_FILENO);
     
-    char* f = malloc(1024);
-    strcpy(f, req->filename);
-    char* argv[] = {f, NULL};
-    char** env = get_cgi_env(req);
-    get_cgi_env(req);
+    param_t param;
+    get_cgi_env(req, &param);
 
-    //Execve(f, argv, env);
-    Execve(req->filename, argv, env);
+    Execve(param.argv[0], param.argv, param.env);
   } else {
     if (Write(pipefd[1], req->body, req->header.content_length) != req->header.content_length) {
       return -1;
@@ -172,7 +169,6 @@ int serve_cgi(httpio_t* hio, request_t* req) {
     Close(pipefd[0]);
     Close(pipefd[1]);
   }
-
   return 0;
 }
 
@@ -184,24 +180,27 @@ int Serve_cgi(httpio_t* hio, request_t* req) {
   return state;
 }
 
-char** get_cgi_env(request_t* req) {
-  char** env = (char**) Calloc(ENV_TYPES + 1, sizeof(char*));
+void get_cgi_env(request_t* req, param_t* p) {
+  p->argv = (char**)Calloc(2, sizeof(char*));
+  p->argv[0] = (char*)Malloc(strlen(req->filename) + 1);
+  strcpy(p->argv[0], req->filename);
+
+  p->env = (char**)Calloc(ENV_TYPES + 1, sizeof(char*));
   char buf[MAXLINE];
   sprintf(buf, "QUERY_STRING=%s", req->qs);
-  insert_env(env, 0, buf);
+  insert_env(p->env, 0, buf);
   sprintf(buf, "CONTENT_LENGTH=%d", req->header.content_length);
-  insert_env(env, 1, buf);
+  insert_env(p->env, 1, buf);
   sprintf(buf, "PATH_INFO=%s", req->filename);
-  insert_env(env, 2, buf);
+  insert_env(p->env, 2, buf);
   sprintf(buf, "REQUEST_METHOD=%s", req->method);
-  insert_env(env, 3, buf);
+  insert_env(p->env, 3, buf);
   sprintf(buf, "SERVER_NAME=Zzxy");
-  insert_env(env, 4, buf);
+  insert_env(p->env, 4, buf);
   sprintf(buf, "SERVER_PORT=%s", req->type == HTTP ? http_port : https_port);
-  insert_env(env, 5, buf);
+  insert_env(p->env, 5, buf);
   sprintf(buf, "GATEWAY_INTERFACE=CGI/1.1");
-  insert_env(env, 6, buf);
-  return env;
+  insert_env(p->env, 6, buf);
 }
 
 void insert_env(char** env, int i, char* buf) {
