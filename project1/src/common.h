@@ -35,6 +35,7 @@
 
 #define CONN_CLOSE 0
 #define CONN_KEEPALIVE 1
+#define WAIT_PIPE 2
 
 /* http error */
 #define ERR_TYPES (1 << 4)
@@ -45,8 +46,13 @@
 #define NOT_IMPLEMENTED 501
 #define HTTP_VERSION_NOT_SUPPORTED 505
 
-#define HTTP 0
-#define HTTPS 1
+#define EV_LISTEN_HTTP 1
+#define EV_LISTEN_HTTPS 2
+#define EV_HTTP 3
+#define EV_HTTPS 4
+
+#define HTTP EV_HTTP
+#define HTTPS EV_HTTPS
 
 #define ENV_TYPES 18
 
@@ -66,7 +72,7 @@ extern char* lock_file;
 extern char* www_folder;
 extern char* cgi_path;
 extern char* priv_key_file;
-extern char* certificate_file;
+extern char* cert_file;
 extern int log_fd;
 
 void write_log(char* msg);

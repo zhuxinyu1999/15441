@@ -235,6 +235,7 @@ int get_request_body(httpio_t* hio, request_t* req) {
     }
   }
   write_nlog(req->body, total_len);
+  write_nlog("\n", 1);
   return 0;
 }
 

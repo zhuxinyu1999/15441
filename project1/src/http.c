@@ -1,6 +1,6 @@
 #include "http.h"
 
-int start_http() {
+int start_http(int type) {
   int fd;
   struct sockaddr_in addr;
 
@@ -9,7 +9,7 @@ int start_http() {
   }
 
   addr.sin_family = AF_INET;
-  addr.sin_port = htons((atoi(http_port)));
+  addr.sin_port = htons((atoi(type == EV_LISTEN_HTTP ? http_port : https_port)));
   addr.sin_addr.s_addr = INADDR_ANY;
 
   if (Bind(fd, (struct sockaddr *)(&addr), sizeof(addr)) < 0) {
@@ -25,51 +25,66 @@ int start_http() {
   return fd;
 }
 
-int Start_http() {
-  int fd = start_http();
+int Start_http(int type) {
+  int fd = start_http(type);
   if (fd < 0) {
-    err_return("start http failed\n");
+    if (type == HTTP) {
+      err_return("start http failed\n");
+    } else {
+      err_return("start https failed\n");
+    }
   }
   return fd;
 }
 
-int serve_http(int fd, int type) {
-  int conn;
-  httpio_t httpio;
-  httpio_init(&httpio, fd, type);
+int serve_http(int ep_fd, pool_t* pool, int index) {
+  pool_update(pool, index);
+
+  client_t* client = &(pool->info[index]);
+  httpio_t* hio = &(client->httpio);
+
   while (1) {
-    request_t* req = request_init(type);
-
     int state, pipeline;
+    request_t* req = request_init(hio->type);
 
-    if (state = Parse(&httpio, req, &pipeline, &conn)) {
+    if (state = Parse(hio, req, &pipeline, &(client->conn))) {
       if (state > 0) {
-        http_error(&httpio, state);
+        http_error(hio, state);
       }
       request_deinit(req);
       return state;
     }
 
     if (req->is_cgi == STATIC) {
-      state = Serve_static(&httpio, req);
+      state = Serve_static(hio, req);
     } else {
-      state = Serve_cgi(&httpio, req);
+      state = Serve_cgi(hio, req, &(client->pipe_fd));
     }
 
+    request_deinit(req);
+    
     if (state > 0) {
-      http_error(&httpio, state);
+      http_error(hio, state);
     } else if (state < 0) {
       return ERR_SYS;
     }
 
-    request_deinit(req);
+    if (client->pipe_fd > 0) {
+      struct epoll_event ev;
+      ev.data.u32 = -index;
+      ev.events = EPOLLIN;
+      if (Epoll_ctl(ep_fd, EPOLL_CTL_ADD, client->pipe_fd, &ev) < 0) {
+        return -1;
+      }
+      return WAIT_PIPE;
+    }
 
     if (pipeline == 0) {
       break;
     }
   }
 
-  return conn;
+  return client->conn;
 }
 
 int serve_static(httpio_t* hio, request_t* req) {
@@ -127,7 +142,7 @@ int Serve_static(httpio_t* hio, request_t* req) {
   return state;
 }
 
-int serve_cgi(httpio_t* hio, request_t* req) {
+int serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
   struct stat sbuf;
   if (Stat(req->filename, &sbuf) < 0) {
     http_error(hio, NOT_FOUND);
@@ -138,9 +153,13 @@ int serve_cgi(httpio_t* hio, request_t* req) {
     return FORBIDDEN;
   }
 
-  pid_t pid;
-  int pipefd[2];
-  if (Pipe(pipefd) < 0) {
+  int pipefd_in[2];
+  int pipefd_out[2];
+  if (Pipe(pipefd_in) < 0) {
+    return -1;
+  }
+
+  if (Pipe(pipefd_out) < 0) {
     return -1;
   }
 
@@ -148,32 +167,35 @@ int serve_cgi(httpio_t* hio, request_t* req) {
   sprintf(buf, "HTTP/1.1 200 OK\r\n");
   Httpio_writen(hio, strlen(buf), buf);
 
+  pid_t pid;
   if ((pid = Fork()) < 0) {
     return -1;
   }
 
   if (pid == 0) {
 
-    Close(pipefd[1]);
-    Dup2(pipefd[0], STDIN_FILENO);
-    Dup2(hio->fd, STDOUT_FILENO);
-    
+    Close(pipefd_in[1]);
+    Close(pipefd_out[0]);
+    Dup2(pipefd_in[0], STDIN_FILENO);
+    Dup2(pipefd_out[1], STDOUT_FILENO);
+
     param_t param;
     get_cgi_env(req, &param);
-
     Execve(param.argv[0], param.argv, param.env);
   } else {
-    if (Write(pipefd[1], req->body, req->header.content_length) != req->header.content_length) {
+    Close(pipefd_in[0]);
+    Close(pipefd_out[1]);
+    if (Write(pipefd_in[1], req->body, req->header.content_length) != req->header.content_length) {
       return -1;
     }
-    Close(pipefd[0]);
-    Close(pipefd[1]);
+    Close(pipefd_in[1]);
   }
+  *pfd = pipefd_out[0];
   return 0;
 }
 
-int Serve_cgi(httpio_t* hio, request_t* req) {
-  int state = serve_cgi(hio, req);
+int Serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
+  int state = serve_cgi(hio, req, pfd);
   if (state < 0) {
     err_return("serve_cgi failed\n");
   }
@@ -225,13 +247,7 @@ void http_error(httpio_t* hio, int num) {
   Httpio_writen(hio, strlen(buf), buf);
   sprintf(buf, "Content-type: text/html\r\n\r\n");
   Httpio_writen(hio, strlen(buf), buf);
-  sprintf(buf, "<html><title>Request Error</title>");
-  Httpio_writen(hio, strlen(buf), buf);
-  sprintf(buf, "<body bgcolor=""ffffff"">\r\n");
-  Httpio_writen(hio, strlen(buf), buf);
-  sprintf(buf, "%d: %s\r\n", num, msg);
-  Httpio_writen(hio, strlen(buf), buf);
-  sprintf(buf, "<hr><em>Zzxy Web server</em>\r\n");
+  sprintf(buf, "<html><h1>%d %s</h1></html>\r\n", num, msg);
   Httpio_writen(hio, strlen(buf), buf);
   Httpio_send(hio);
   return 0;

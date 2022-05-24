@@ -9,27 +9,26 @@
 #include "common.h"
 #include "httpio.h"
 #include "request.h"
+#include "pool.h"
 
 #define BACKLOG (1 << 4)
 
-#define HTTP 0
-#define HTTPS 1
 
 typedef struct {
   char** argv;
   char** env;
 } param_t;
 
-int start_http();
-int Start_http();
+int start_http(int type);
+int Start_http(int type);
 
-int serve_http(int fd, int type);
+int serve_http(int ep_fd, pool_t* pool, int index);
 
 int serve_static(httpio_t* hio, request_t* req);
 int Serve_static(httpio_t* hio, request_t* req);
 
-int serve_cgi(httpio_t* hio, request_t* req);
-int Serve_cgi(httpio_t* hio, request_t* req);
+int serve_cgi(httpio_t* hio, request_t* req, int* pfd);
+int Serve_cgi(httpio_t* hio, request_t* req, int* pfd);
 
 void get_cgi_env(request_t* req, param_t* p);
 

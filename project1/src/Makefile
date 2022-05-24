@@ -7,7 +7,7 @@
 CC = gcc
 CFLAGS = -g -O0
 LFLAGS = -lssl
-OBJECTS = server.o common.o pool.o httpio.o http.o request.o header.o
+OBJECTS = server.o util.o common.o pool.o httpio.o http.o request.o header.o tls.o
 
 default: server
 

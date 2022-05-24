@@ -1,55 +1,9 @@
 #include "header.h"
 
 hdr_handler_t hdr_handler[HEADER_TYPES] = {
-  {"Accept:", NULL},
-  {"Accept-Charset:", NULL},
-  {"Accept-Encoding:", NULL},
-  {"Accept-Language:", NULL},
-  {"Accept-Ranges:", NULL},
-  {"Age:", NULL},
-  {"Allow:", NULL},
-  {"Authorization:", NULL},
-  {"Cache-Control:", NULL},
   {"Connection:", hdr_handler_connection},
-  {"Content-Encoding:", NULL},
-  {"Content-Language:", NULL},
   {"Content-Length:", hdr_handler_content_length},
-  {"Content-Location:", NULL},
-  {"Content-MD5:", NULL},
-  {"Content-Range:", NULL},
-  {"Content-Type:", NULL},
-  {"Date:", NULL},
-  {"ETag:", NULL},
-  {"Expect:", NULL},
-  {"Expires:", NULL},
-  {"From:", NULL},
-  {"Host:", NULL},
-  {"If-Match:", NULL},
-  {"If-Modified-Since:", NULL},
-  {"If-None-Match:", NULL},
-  {"If-Range:", NULL},
-  {"If-Unmodified-Since:", NULL},
-  {"Last-Modified:", NULL},
-  {"Location:", NULL},
-  {"Max-Forwards:", NULL},
-  {"Pragma:", NULL},
-  {"Proxy-Authenticate:", NULL},
-  {"Proxy-Authorization:", NULL},
-  {"Range:", NULL},
-  {"Referer:", NULL},
-  {"Retry-After:", NULL},
-  {"Server:", NULL},
-  {"TE:", NULL},
-  {"Trailer:", NULL},
-  {"Transfer-Encoding:", hdr_handler_transfer_encoding},
-  {"Upgrade:", NULL},
-  {"User-Agent:", NULL},
-  {"Vary:", NULL},
-  {"Via:", NULL},
-  {"Warning:", NULL},
-  {"WWW-Authenticate:", NULL},
-  {"Upgrade-Insecure-Requests:", NULL},
-  {"Origin:", NULL}
+  {"Transfer-Encoding:", hdr_handler_transfer_encoding}
 };
 
 int hdr_handler_connection(char* hdr_val, request_hdr_t* request_hdr) {
@@ -96,7 +50,7 @@ int parse_hdr(char* hdr, request_hdr_t* request_hdr) {
       return 0;
     }
   }
-  return -1;
+  return 0;
 }
 
 int Parse_hdr(char* hdr, request_hdr_t* request_hdr) {

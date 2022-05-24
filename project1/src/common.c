@@ -16,7 +16,7 @@ char* lock_file;
 char* www_folder;
 char* cgi_path;
 char* priv_key_file;
-char* certificate_file;
+char* cert_file;
 
 int log_fd;
 

@@ -1,12 +1,12 @@
 #include "httpio.h"
 
-void httpio_init(httpio_t* hio, int fd, int type) {
+void httpio_init(httpio_t* hio, int fd, int type, SSL* ssl) {
   hio->fd = fd;
   hio->type = type;
+  hio->ssl = ssl;
   hio->recv_i = 0;
   hio->recv_n = 0;
   hio->send_i = 0;
-  return 0;
 }
 
 int httpio_recv_http(httpio_t* hio) {
@@ -16,6 +16,8 @@ int httpio_recv_http(httpio_t* hio) {
 }
 
 int httpio_recv_https(httpio_t* hio) {
+  hio->recv_n = SSL_read(hio->ssl, hio->recvbuf, MAX_HTTPIO_BUF);
+  hio->recv_i = 0;
   return 0;
 }
 
@@ -92,13 +94,13 @@ int Httpio_readn(httpio_t* hio, int n, char* usrbuf, int maxlen) {
 }
 
 int httpio_empty(httpio_t* hio) {
-  if (hio->recv_i != hio->recv_n) {
+  if (hio->recv_i < hio->recv_n) {
     return 0;
   }
   if (httpio_recv(hio) < 0) {
     return 1;
   }
-  return hio->recv_n == 0;
+  return hio->recv_n <= 0;
 }
 
 int httpio_send_http(httpio_t* hio) {
@@ -108,7 +110,9 @@ int httpio_send_http(httpio_t* hio) {
 }
 
 int httpio_send_https(httpio_t* hio) {
-  return 0;
+  int sn = SSL_write(hio->ssl, hio->sendbuf, hio->send_i);
+  hio->send_i = 0;
+  return sn;
 }
 
 int httpio_send(httpio_t* hio) {

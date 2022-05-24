@@ -3,6 +3,7 @@
 
 #include <sys/socket.h>
 #include <memory.h>
+#include <openssl/ssl.h>
 #include "common.h"
 
 #define MAX_HTTPIO_BUF (1 << 10)
@@ -10,6 +11,7 @@
 typedef struct {
   int fd;
   int type;
+  SSL* ssl;
   int recv_i;
   int recv_n;
   int send_i;
@@ -17,7 +19,7 @@ typedef struct {
   char sendbuf[MAX_HTTPIO_BUF];
 } httpio_t;
 
-void httpio_init(httpio_t* hio, int fd, int type);
+void httpio_init(httpio_t* hio, int fd, int type, SSL* ssl);
 
 int httpio_recv_http(httpio_t* hio);
 int httpio_recv_https(httpio_t* hio);
