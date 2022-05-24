@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import socket
-from time import sleep
 
 host = "192.168.52.144"
 port = 8080
