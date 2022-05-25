@@ -23,8 +23,11 @@ void request_deinit(request_t* req) {
   free(req);
 }
 
-
-int parse(httpio_t* hio, request_t* req, int* pipeline, int* conn) {
+/* 
+ * req: request info
+ * pipeline: pipeline request
+ */
+int parse(httpio_t* hio, request_t* req, int* pipeline) {
   
   int state;
 
@@ -40,14 +43,14 @@ int parse(httpio_t* hio, request_t* req, int* pipeline, int* conn) {
     return state;
   }
 
+  /* if httpio not empty, pipeline request */
   *pipeline = !httpio_empty(hio);
-  *conn = req->header.connection;
   
   return 0;
 }
 
-int Parse(httpio_t* hio, request_t* req, int* pipeline, int* conn) {
-  int r = parse(hio, req, pipeline, conn);
+int Parse(httpio_t* hio, request_t* req, int* pipeline) {
+  int r = parse(hio, req, pipeline);
   if (r == ERR_SYS) {
     err_return("parse failed (err_io)\n");
   } else if (r > 0) {
@@ -56,14 +59,15 @@ int Parse(httpio_t* hio, request_t* req, int* pipeline, int* conn) {
   return r;
 }
 
-
-
+/* implement GET HEAD POST */
 int parse_request_line(httpio_t* hio, request_t* req) {
   int buflen;
   char buf[MAXLINE];
 
   if ((buflen = Httpio_readline(hio, buf, MAXLINE)) > 0) {
-    sscanf(buf, "%s %s %s", req->method, req->uri, req->version);
+    if (sscanf(buf, "%s %s %s", req->method, req->uri, req->version) != 3) {
+      return BAD_REQUEST;
+    }
   } else if (buflen == ERR_SYS) {
     return ERR_SYS;
   } else if (buflen == ERR_LEN) {
@@ -100,8 +104,6 @@ int parse_request_line(httpio_t* hio, request_t* req) {
     return BAD_REQUEST;
   }
 
-  
-
   return 0;
 }
 
@@ -113,6 +115,10 @@ int Parse_request_line(httpio_t* hio, request_t* req) {
   return state;
 }
 
+/*
+ * check file path in www_folder or cgi_path
+ * if neither, default in www_folder
+ */
 int parse_uri(request_t* req) {
   /* path begin */
   char* ptr1;
@@ -132,7 +138,6 @@ int parse_uri(request_t* req) {
 
   /* query string begin */
   char* ptr2;
-
   if (req->is_cgi == CGI) {
     if ((ptr2 = strstr(ptr1, "?")) != NULL) {
       strncpy(req->filename, ptr1, ptr2 - ptr1);
@@ -186,7 +191,7 @@ void get_filetype(request_t* req) {
   }
 } 
 
-
+/* read a request header line and parse */
 int parse_request_header(httpio_t* hio, request_t* req) {
   int buflen;
   char buf[MAXLINE];
@@ -215,7 +220,7 @@ int Parse_request_header(httpio_t* hio, request_t* req) {
   return state;
 }
 
-
+/* if content_length != 0, copy request body */
 int get_request_body(httpio_t* hio, request_t* req) {
   if (req->header.transfer_encoding == TE_IDENTITY && req->header.content_length == 0) {
     return 0;

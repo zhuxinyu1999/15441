@@ -46,6 +46,7 @@ void check(pool_t* pool) {
   time_t cur_time = time(NULL);
   int i;
   for (i = 0; i < MAX_CLIENT; ++i) {
+    /* too long time no request */
     if (pool->info[i].type != EV_LISTEN_HTTP && 
         pool->info[i].type != EV_LISTEN_HTTPS && 
         cur_time - pool->info[i].time >= CLOSE_TIME) {

@@ -28,8 +28,7 @@ int open_logfile() {
 void http_init(pool_t* pool, int ep_fd) {
   
   struct epoll_event ev;
-
-  /* https */
+  /* http */
   int http_fd = Start_http(EV_LISTEN_HTTP);
   if (http_fd < 0) {
     err_exit("http init failed\n");
@@ -75,6 +74,7 @@ void add_client(SSL_CTX* ctx, pool_t* pool, int server_fd, int ep_fd, int ev_typ
   
   struct epoll_event ev;
   ev.events = EPOLLIN|EPOLLRDHUP|EPOLLET;
+  /* ev.data.u32 = fd index in pool */
   if ((ev.data.u32 = Pool_insert(pool, fd, ev_type, ssl, addr_s)) < 0) {
     free_ssl(ssl);
     Close(fd);
@@ -94,12 +94,14 @@ void add_client(SSL_CTX* ctx, pool_t* pool, int server_fd, int ep_fd, int ev_typ
 
 void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int index) {
 
+  char buf[MAXLINE];
+
   int fd = pool->info[index].fd;
   int type = pool->info[index].type;
   SSL* ssl = pool->info[index].ssl;
   char* addr = pool->info[index].addr;
 
-  char buf[MAXLINE];
+  /* closed by peer */
   if (ev->events & EPOLLRDHUP) {
     if (fd != 0) {
       sprintf(buf, "client %s close the connection\n", addr);
@@ -108,7 +110,6 @@ void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int i
       pool_remove(pool, index);
       Close(fd);
     }
-    /* fd has been closed, but epoll wait invoked by child process */
     return;
   }
 
@@ -117,21 +118,25 @@ void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int i
   
   int state = serve_http(ep_fd, pool, index);
 
+  /* client wait cgi response from pipe */
   if (state == WAIT_PIPE) {
     sprintf(buf, "serve client %s: wait cgi\n\n", addr);
     write_log(buf);
     return;
   }
-
+  /* persistent connection */
   if (state == CONN_KEEPALIVE) {
     sprintf(buf, "serve client %s: end(keep-alive)\n\n", addr);
     write_log(buf);
   } else {
     if (state == CONN_CLOSE) {
+      /* close connection */
       sprintf(buf, "serve client %s: end(close)\n\n", addr);
     } else if (state == ERR_SYS) {
+      /* sys error */
       sprintf(buf, "serve client %s: end(sys error)\n\n", addr);
     } else {
+      /* http request error */
       sprintf(buf, "serve client %s: end(http error)\n\n", addr);
     }
     write_log(buf);
@@ -144,27 +149,31 @@ void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int i
 void pipe_response(pool_t* pool, int index) {
   int buflen;
   char buf[MAXLINE];
+
   int fd = pool->info[index].fd;
   int pfd = pool->info[index].pipe_fd;
   char* addr = pool->info[index].addr;
   httpio_t* hio = &(pool->info[index].httpio);
 
-  sprintf(buf, "cgi pipe response to client %s: begin\n", addr);
+  sprintf(buf, "cgi pipe response for client %s: begin\n", addr);
   write_log(buf);
 
+  /* read from pipe(pfd) */
   while ((buflen = read(pfd, buf, MAXLINE)) > 0) {
     httpio_writen(hio, buflen, buf);
   }
+  /* send to client */
   Httpio_send(hio);
 
   Close(pfd);
+  /* persistent connection? */
   if (pool->info[index].conn == CONN_CLOSE) {
     free_ssl(pool->info[index].ssl);
     pool_remove(pool, index);
     Close(fd);
   }
 
-  sprintf(buf, "cgi pipe response to client %s: end(%s)\n", addr, 
+  sprintf(buf, "cgi pipe response for client %s: end(%s)\n", addr, 
          pool->info[index].conn == CONN_KEEPALIVE ? "keep-alive" : "close");
   write_log(buf);
 

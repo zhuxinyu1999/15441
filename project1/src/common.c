@@ -203,7 +203,6 @@ int Recv(int fd, void* buf, size_t n, int flags) {
   return rn;
 }
 
-
 handler_t *Signal(int signum, handler_t *handler) {
   struct sigaction action, old_action;
 

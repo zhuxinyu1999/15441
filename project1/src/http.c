@@ -38,23 +38,28 @@ int Start_http(int type) {
 }
 
 int serve_http(int ep_fd, pool_t* pool, int index) {
+  /* update last request time */
   pool_update(pool, index);
 
   client_t* client = &(pool->info[index]);
   httpio_t* hio = &(client->httpio);
 
+  /* handle pipe line request */
   while (1) {
     int state, pipeline;
     request_t* req = request_init(hio->type);
 
-    if (state = Parse(hio, req, &pipeline, &(client->conn))) {
+    /* parse request */
+    if (state = Parse(hio, req, &pipeline)) {
       if (state > 0) {
         http_error(hio, state);
       }
       request_deinit(req);
       return state;
     }
-
+    client->conn = req->header.connection;
+    
+    /* STATIC or CGI */
     if (req->is_cgi == STATIC) {
       state = Serve_static(hio, req);
     } else {
@@ -69,6 +74,10 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
       return ERR_SYS;
     }
 
+    /* 
+     * response from cgi pipe_fd 
+     * add a event to epoll_fd
+     */
     if (client->pipe_fd > 0) {
       struct epoll_event ev;
       ev.data.u32 = -index;
@@ -76,14 +85,17 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
       if (Epoll_ctl(ep_fd, EPOLL_CTL_ADD, client->pipe_fd, &ev) < 0) {
         return -1;
       }
+      /* return WAIT_PIE, do not close client_fd */
       return WAIT_PIPE;
     }
 
+    /* no more request */
     if (pipeline == 0) {
       break;
     }
   }
 
+  /* keep-alive or close or ERR_SYS or ERR_HTTP */
   return client->conn;
 }
 
@@ -153,6 +165,7 @@ int serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
     return FORBIDDEN;
   }
 
+  /* 2 pipe for parent and child */
   int pipefd_in[2];
   int pipefd_out[2];
   if (Pipe(pipefd_in) < 0) {
@@ -185,11 +198,14 @@ int serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
   } else {
     Close(pipefd_in[0]);
     Close(pipefd_out[1]);
+    /* request body is child process STDIN */
     if (Write(pipefd_in[1], req->body, req->header.content_length) != req->header.content_length) {
       return -1;
     }
     Close(pipefd_in[1]);
   }
+
+  /* read from pfd and send response to client */
   *pfd = pipefd_out[0];
   return 0;
 }

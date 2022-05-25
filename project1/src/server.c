@@ -32,6 +32,7 @@ int main(int argc, char** argv) {
     ready = Epoll_wait(ep_fd, ready_list, READY_LIST_SIZE, -1);
     for (i = 0; i < ready; ++i) {
       index = ready_list[i].data.u32;
+      /* http/https listen or client request */
       if (index >= 0) {
         ev_type = pool.info[index].type;
         if (ev_type == EV_LISTEN_HTTP) {
@@ -42,6 +43,7 @@ int main(int argc, char** argv) {
           response_http_client(ep_fd, &pool, &(ready_list[i]), index);
         }
       } else {
+        /* cgi pipe response */
         index = -index;
         pipe_response(&pool, index);
       }

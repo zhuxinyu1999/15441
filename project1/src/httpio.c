@@ -37,6 +37,38 @@ int Httpio_recv(httpio_t* hio) {
   return n;
 }
 
+int httpio_send_http(httpio_t* hio) {
+  int sn = send(hio->fd, hio->sendbuf, hio->send_i, 0);
+  hio->send_i = 0;
+  return sn;
+}
+
+int httpio_send_https(httpio_t* hio) {
+  int sn = SSL_write(hio->ssl, hio->sendbuf, hio->send_i);
+  hio->send_i = 0;
+  return sn;
+}
+
+int httpio_send(httpio_t* hio) {
+  if (hio->type == HTTP) {
+    return httpio_send_http(hio);
+  } else {
+    return httpio_send_https(hio);
+  }
+}
+
+int Httpio_send(httpio_t* hio) {
+  int sn = httpio_send(hio);
+  if (sn < 0) {
+    err_return("httpio_send failed\n");
+  }
+  return sn;
+}
+
+/* 
+ * read a line(end with a '\n') from recvbuf
+ * if recvbuf empty, Httpio_recv from client to fill
+ */
 int httpio_readline(httpio_t* hio, char* usrbuf, int maxlen) {
   int j = 0;
   while (j != maxlen - 1) {
@@ -103,34 +135,10 @@ int httpio_empty(httpio_t* hio) {
   return hio->recv_n <= 0;
 }
 
-int httpio_send_http(httpio_t* hio) {
-  int sn = send(hio->fd, hio->sendbuf, hio->send_i, 0);
-  hio->send_i = 0;
-  return sn;
-}
-
-int httpio_send_https(httpio_t* hio) {
-  int sn = SSL_write(hio->ssl, hio->sendbuf, hio->send_i);
-  hio->send_i = 0;
-  return sn;
-}
-
-int httpio_send(httpio_t* hio) {
-  if (hio->type == HTTP) {
-    return httpio_send_http(hio);
-  } else {
-    return httpio_send_https(hio);
-  }
-}
-
-int Httpio_send(httpio_t* hio) {
-  int sn = httpio_send(hio);
-  if (sn < 0) {
-    err_return("httpio_send failed\n");
-  }
-  return sn;
-}
-
+/*
+ * write n bytes from usrbuf to sendbuf
+ * when sendbuf full, Httpio_send to client to flush
+ */
 int httpio_writen(httpio_t* hio, int n, char* usrbuf) {
   int i;
   for (i = 0; i < n; ++i) {
@@ -143,7 +151,6 @@ int httpio_writen(httpio_t* hio, int n, char* usrbuf) {
   }
   return 0;
 }
-
 
 int Httpio_writen(httpio_t* hio, int n, char* usrbuf) {
   int wn = httpio_writen(hio, n, usrbuf);
