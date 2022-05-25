@@ -57,8 +57,10 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
       request_deinit(req);
       return state;
     }
+
     client->conn = req->header.connection;
-    
+    client->pipe_fd = 0;
+
     /* STATIC or CGI */
     if (req->is_cgi == STATIC) {
       state = Serve_static(hio, req);
@@ -75,7 +77,7 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
     }
 
     /* 
-     * response from cgi pipe_fd 
+     * send response from cgi pipe_fd 
      * add a event to epoll_fd
      */
     if (client->pipe_fd > 0) {
@@ -85,7 +87,7 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
       if (Epoll_ctl(ep_fd, EPOLL_CTL_ADD, client->pipe_fd, &ev) < 0) {
         return -1;
       }
-      /* return WAIT_PIE, do not close client_fd */
+      /* return WAIT_PIPE, do not close client_fd */
       return WAIT_PIPE;
     }
 

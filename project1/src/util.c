@@ -173,7 +173,7 @@ void pipe_response(pool_t* pool, int index) {
     Close(fd);
   }
 
-  sprintf(buf, "cgi pipe response for client %s: end(%s)\n", addr, 
+  sprintf(buf, "cgi pipe response for client %s: end(%s)\n\n", addr, 
          pool->info[index].conn == CONN_KEEPALIVE ? "keep-alive" : "close");
   write_log(buf);
 

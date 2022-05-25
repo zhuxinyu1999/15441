@@ -70,6 +70,7 @@ void Check(pool_t* pool) {
 void pool_remove(pool_t* pool, int index) {
   pool->info[index].fd = 0;
   pool->info[index].pipe_fd = 0;
+  pool->info[index].ssl = NULL;
   --pool->n;
 }
 
