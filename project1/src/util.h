@@ -1,10 +1,12 @@
 #ifndef _UTIL_H
 #define _UTIL_H
 
+#include <signal.h>
 #include "common.h"
 #include "pool.h"
 #include "http.h"
 #include "tls.h"
+#include "sig.h"
 
 void parse_cmd(int argc, char** argv);
 
@@ -20,5 +22,8 @@ void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int i
 
 /* response client from cgi pipe */
 void pipe_response(pool_t* pool, int index);
+
+/* handle signal */
+void set_sig_handler();
 
 #endif  

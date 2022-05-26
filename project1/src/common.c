@@ -17,8 +17,8 @@ char* www_folder;
 char* cgi_path;
 char* priv_key_file;
 char* cert_file;
-
 int log_fd;
+int check_tag = 0;
 
 void write_log(char* msg) {
   write(log_fd, msg, strlen(msg));
@@ -201,23 +201,6 @@ int Recv(int fd, void* buf, size_t n, int flags) {
     err_return(buf);
   }
   return rn;
-}
-
-handler_t *Signal(int signum, handler_t *handler) {
-  struct sigaction action, old_action;
-
-  action.sa_handler = handler;
-  sigemptyset(&action.sa_mask);
-  action.sa_flags = SA_RESTART;
-
-  if (sigaction(signum, &action, &old_action) < 0) {
-    char buf[MAXLINE];
-    sprintf(buf, "sigaction: %s\n", strerror(errno));
-    err_return(buf);
-    return -1;
-  }
-        
-  return (old_action.sa_handler);
 }
 
 int Pipe(int pipedes[2]) {

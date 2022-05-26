@@ -48,6 +48,10 @@ int main(int argc, char** argv) {
         pipe_response(&pool, index);
       }
     }
+    if (check_tag == 1) {
+      check(&pool);
+      check_tag = 0;
+    }
   }
   
   pool_deinit(&pool);

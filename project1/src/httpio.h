@@ -10,14 +10,14 @@
 
 typedef struct {
   int fd;
-  /* HTTP or HTTPS */
-  int type;
-  /* TLS read and write */
-  SSL* ssl;
+  int type; // HTTP or HTTPS
+  SSL* ssl; // TLS read and write
+
   /* recv buf */
   int recv_i;
   int recv_n;
   char recvbuf[MAX_HTTPIO_BUF];
+
   /* send buf */
   int send_i;
   char sendbuf[MAX_HTTPIO_BUF];

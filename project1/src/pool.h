@@ -2,6 +2,7 @@
 #define _POOL_H
 
 #include <time.h>
+#include <sys/time.h>
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <string.h>
@@ -15,8 +16,8 @@
 /* time to close */
 #define CLOSE_TIME (1 << 12)
 
-/* interval to check client duration time */
-#define CHECK_INTERVAL (1 << 12)
+/* check time */
+#define INTERVAL_TIME (1 << 14)
 
 /* client addr length */
 #define ADDR_LENGTH (1 << 4)
@@ -24,7 +25,7 @@
 typedef struct {
   int fd;                 // file descriptor
   int type;               // HTTP or HTTPS
-  time_t time;            // duration
+  time_t time;            // last_request_time
   SSL* ssl;               // TLS: ssl
   char addr[ADDR_LENGTH]; // client addr
   httpio_t httpio;        // httpio
@@ -51,7 +52,6 @@ int Pool_insert(pool_t* pool, int fd, int type, SSL* ssl, char* addr);
 
 /* check and close long time no_request fd */
 void check(pool_t* pool);
-void Check(pool_t* pool);
 
 /* remove fd by index */
 void pool_remove(pool_t* pool, int index);

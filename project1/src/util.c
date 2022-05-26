@@ -178,3 +178,16 @@ void pipe_response(pool_t* pool, int index) {
   write_log(buf);
 
 }
+
+void set_sig_handler() {
+  /* automatically reap child process */
+  if (Signal(SIGCHLD, SIG_IGN) < 0) {
+    err_exit("set sig handler failed\n");
+  }
+  if (Signal(SIGALRM, sig_alarm_handler)) {
+    err_exit("set sig handler failed\n");
+  }
+  if (Signal(SIGPIPE, SIG_IGN) < 0) {
+    err_exit("set sig handler failed\n");
+  }
+}

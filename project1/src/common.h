@@ -7,7 +7,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <time.h>
-#include <signal.h>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/epoll.h>
@@ -63,9 +62,6 @@
 /* cgi scripts env types */
 #define ENV_TYPES 18
 
-/* signal handler */
-typedef void handler_t(int);
-
 /* http error and message */
 typedef struct {
   int errnum;
@@ -83,6 +79,7 @@ extern char* cgi_path;
 extern char* priv_key_file;
 extern char* cert_file;
 extern int log_fd;
+extern int check_tag;
 
 /* error */
 void write_log(char* msg);
@@ -115,8 +112,5 @@ int Accept(int listen_fd, struct sockaddr* addr, socklen_t* addr_len);
 int Bind(int fd, const struct sockaddr* addr, socklen_t len);
 int Listen(int fd, int n);
 int Recv(int fd, void* buf, size_t n, int flags);
-
-/* signal */
-handler_t *Signal(int signum, handler_t *handler);
 
 #endif

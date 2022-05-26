@@ -4,6 +4,11 @@ void pool_init(pool_t* pool) {
   pool->n = 0;
   pool->last_check_time = time(NULL);
   pool->info = calloc(MAX_CLIENT, sizeof(client_t));
+  struct timeval interval = {INTERVAL_TIME, 0};
+  struct timeval value = {0, 0};
+  struct itimerval itime = {interval, value};
+  /* check time alarm */
+  setitimer(ITIMER_REAL, &itime, NULL);
 }
 
 void pool_deinit(pool_t* pool) {
@@ -50,6 +55,7 @@ void check(pool_t* pool) {
     if (pool->info[i].type != EV_LISTEN_HTTP && 
         pool->info[i].type != EV_LISTEN_HTTPS && 
         cur_time - pool->info[i].time >= CLOSE_TIME) {
+      write_log("close client %s: wait too long time\n");
       Close(pool->info[i].fd);
       Close(pool->info[i].pipe_fd);
       if (pool->info[i].ssl != NULL) {
@@ -59,12 +65,6 @@ void check(pool_t* pool) {
     }
   }
   pool->last_check_time = cur_time;
-}
-
-void Check(pool_t* pool) {
-  if (time(NULL) - pool->last_check_time >= CHECK_INTERVAL) {
-    check(pool);
-  }
 }
 
 void pool_remove(pool_t* pool, int index) {
