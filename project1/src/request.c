@@ -29,18 +29,18 @@ void request_deinit(request_t* req) {
  */
 int parse(httpio_t* hio, request_t* req, int* pipeline) {
   
-  int state;
+  int status;
 
-  if (state = Parse_request_line(hio, req)) {
-    return state;
+  if (status = Parse_request_line(hio, req)) {
+    return status;
   }
 
-  if (state = Parse_request_header(hio, req)) {
-    return state;
+  if (status = Parse_request_header(hio, req)) {
+    return status;
   }
 
-  if (state = Get_request_body(hio, req)) {
-    return state;
+  if (status = Get_request_body(hio, req)) {
+    return status;
   }
 
   /* if httpio not empty, pipeline request */
@@ -108,11 +108,11 @@ int parse_request_line(httpio_t* hio, request_t* req) {
 }
 
 int Parse_request_line(httpio_t* hio, request_t* req) {
-  int state = parse_request_line(hio, req);
-  if (state) {
+  int status = parse_request_line(hio, req);
+  if (status) {
     err_return("parse req line failed\n");
   }
-  return state;
+  return status;
 }
 
 /*
@@ -168,11 +168,11 @@ int parse_uri(request_t* req) {
 }
 
 int Parse_uri(request_t* req) {
-  int state = parse_uri(req);
-  if (state) {
+  int status = parse_uri(req);
+  if (status) {
     err_return("parse_uri failed\n");
   }
-  return state;
+  return status;
 }
 
 void get_filetype(request_t* req) {
@@ -213,11 +213,11 @@ int parse_request_header(httpio_t* hio, request_t* req) {
 }
 
 int Parse_request_header(httpio_t* hio, request_t* req) {
-  int state = parse_request_header(hio, req);
-  if (state) {
+  int status = parse_request_header(hio, req);
+  if (status) {
     err_return("parse req header failed\n");
   }
-  return state;
+  return status;
 }
 
 /* if content_length != 0, copy request body */
@@ -245,11 +245,11 @@ int get_request_body(httpio_t* hio, request_t* req) {
 }
 
 int Get_request_body(httpio_t* hio, request_t* req) {
-  int state = get_request_body(hio, req);
-  if (state) {
+  int status = get_request_body(hio, req);
+  if (status) {
     err_return("get req body failed\n");
   }
-  return state;
+  return status;
 }
 
 int cpy_body(httpio_t* hio, request_t* req) {

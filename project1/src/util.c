@@ -116,23 +116,23 @@ void response_http_client(int ep_fd, pool_t* pool, struct epoll_event* ev, int i
   sprintf(buf, "serve client %s: begin\n", addr);
   write_log(buf);
   
-  int state = serve_http(ep_fd, pool, index);
+  int status = serve_http(ep_fd, pool, index);
 
   /* client wait cgi response from pipe */
-  if (state == WAIT_PIPE) {
+  if (status == WAIT_PIPE) {
     sprintf(buf, "serve client %s: wait cgi\n\n", addr);
     write_log(buf);
     return;
   }
   /* persistent connection */
-  if (state == CONN_KEEPALIVE) {
+  if (status == CONN_KEEPALIVE) {
     sprintf(buf, "serve client %s: end(keep-alive)\n\n", addr);
     write_log(buf);
   } else {
-    if (state == CONN_CLOSE) {
+    if (status == CONN_CLOSE) {
       /* close connection */
       sprintf(buf, "serve client %s: end(close)\n\n", addr);
-    } else if (state == ERR_SYS) {
+    } else if (status == ERR_SYS) {
       /* sys error */
       sprintf(buf, "serve client %s: end(sys error)\n\n", addr);
     } else {

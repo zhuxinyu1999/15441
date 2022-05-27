@@ -72,13 +72,13 @@ int Epoll_create1(int flags) {
 }
 
 int Epoll_ctl(int epfd, int op, int fd, struct epoll_event* event) {
-  int state = epoll_ctl(epfd, op, fd, event);
-  if (state < 0) {
+  int status = epoll_ctl(epfd, op, fd, event);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "epoll_ctl: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 int Epoll_wait(int epfd, struct epoll_event* events, int maxevents, int timeout) {
@@ -120,13 +120,13 @@ void Close(int fd) {
 }
 
 int Stat(char* file, struct stat* buf) {
-  int state = stat(file, buf);
-  if (state < 0) {
+  int status = stat(file, buf);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "stat: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 void* Mmap(void* addr, size_t len, int prot, int flags, int fd, __off_t offset) {
@@ -140,13 +140,13 @@ void* Mmap(void* addr, size_t len, int prot, int flags, int fd, __off_t offset) 
 }
 
 int Munmap(void* addr, size_t len) {
-  int state = munmap(addr, len);
-  if (state < 0) {
+  int status = munmap(addr, len);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "munmap: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 int Accept(int listen_fd, struct sockaddr* addr, socklen_t* addr_len) {
@@ -174,23 +174,23 @@ int Socket(int domain, int type, int protocol) {
 }
 
 int Bind(int fd, const struct sockaddr* addr, socklen_t len) {
-  int state = bind(fd, addr, len);
-  if (state < 0) {
+  int status = bind(fd, addr, len);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "bind: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 int Listen(int fd, int n) {
-  int state = listen(fd, n);
-  if (state < 0) {
+  int status = listen(fd, n);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "listen: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 int Recv(int fd, void* buf, size_t n, int flags) {
@@ -204,13 +204,13 @@ int Recv(int fd, void* buf, size_t n, int flags) {
 }
 
 int Pipe(int pipedes[2]) {
-  int state = pipe(pipedes);
-  if (state < 0) {
+  int status = pipe(pipedes);
+  if (status < 0) {
     char buf[MAXLINE];
     sprintf(buf, "pipe: %s\n", strerror(errno));
     err_return(buf);
   }
-  return state;
+  return status;
 }
 
 int Fork() {

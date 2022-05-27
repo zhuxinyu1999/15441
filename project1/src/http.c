@@ -46,16 +46,16 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
 
   /* handle pipe line request */
   while (1) {
-    int state, pipeline;
+    int status, pipeline;
     request_t* req = request_init(hio->type);
 
     /* parse request */
-    if (state = Parse(hio, req, &pipeline)) {
-      if (state > 0) {
-        http_error(hio, state);
+    if (status = Parse(hio, req, &pipeline)) {
+      if (status > 0) {
+        http_error(hio, status);
       }
       request_deinit(req);
-      return state;
+      return status;
     }
 
     client->conn = req->header.connection;
@@ -63,16 +63,16 @@ int serve_http(int ep_fd, pool_t* pool, int index) {
 
     /* STATIC or CGI */
     if (req->is_cgi == STATIC) {
-      state = Serve_static(hio, req);
+      status = Serve_static(hio, req);
     } else {
-      state = Serve_cgi(hio, req, &(client->pipe_fd));
+      status = Serve_cgi(hio, req, &(client->pipe_fd));
     }
 
     request_deinit(req);
     
-    if (state > 0) {
-      http_error(hio, state);
-    } else if (state < 0) {
+    if (status > 0) {
+      http_error(hio, status);
+    } else if (status < 0) {
       return ERR_SYS;
     }
 
@@ -149,11 +149,11 @@ int serve_static(httpio_t* hio, request_t* req) {
 }
 
 int Serve_static(httpio_t* hio, request_t* req) {
-  int state = serve_static(hio, req);
-  if (state < 0) {
+  int status = serve_static(hio, req);
+  if (status < 0) {
     err_return("serve_static failed\n");
   }
-  return state;
+  return status;
 }
 
 int serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
@@ -213,11 +213,11 @@ int serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
 }
 
 int Serve_cgi(httpio_t* hio, request_t* req, int* pfd) {
-  int state = serve_cgi(hio, req, pfd);
-  if (state < 0) {
+  int status = serve_cgi(hio, req, pfd);
+  if (status < 0) {
     err_return("serve_cgi failed\n");
   }
-  return state;
+  return status;
 }
 
 void get_cgi_env(request_t* req, param_t* p) {
